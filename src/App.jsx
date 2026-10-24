@@ -2,7 +2,7 @@ import { useState } from "react";
 import Header from "./components/Header";
 import CodeEditor from "./components/CodeEditor";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://codeguardian-ai-backend-0frb.onrender.com";
 const CHAT_URL = `${API_BASE}/chat`;
 const DEBUG_URL = `${API_BASE}/debug`;
 const RUN_URL = `${API_BASE}/run`;
