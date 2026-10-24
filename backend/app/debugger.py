@@ -1,7 +1,7 @@
 
 import ast
 
-from app.ai_services import ask_gemini
+from app.ai_services import ask_gemini, _ask_groq_json
 
 
 def _empty_result(
@@ -153,8 +153,8 @@ Submitted Python code:
         ai = _ask_groq_json(
             system_prompt="You are CodeGuardian AI. Return the requested JSON object and provide complete corrected Python code in fixed_code whenever a correction is needed.",
             user_prompt=prompt,
-            )
-      
+        )
+        
         print("DEBUG AI RESPONSE:", ai, flush=True)
         print("DEBUG FIXED CODE:", repr(ai.get("fixed_code")), flush=True)
 
