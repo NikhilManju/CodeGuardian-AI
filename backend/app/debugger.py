@@ -1,7 +1,7 @@
 
 import ast
 
-from app.ai_services import ask_gemini, _ask_groq_json
+from app.ai_services import _ask_groq_json
 
 
 def _empty_result(
@@ -50,37 +50,27 @@ def debug_code(code: str) -> dict:
             explanation="Please shorten your code and try again.",
         )
 
-    # 2. Parse syntax BEFORE calling the AI.
-    # Invalid syntax returns immediately. This also avoids an API call.
+    # 2. Detect syntax errors, but still let the AI attempt a correction.
+    syntax_errors = []
     try:
         ast.parse(code)
     except SyntaxError as exc:
-        line = exc.lineno
-        message = exc.msg or "Invalid Python syntax."
+        syntax_errors.append({
+            "line": exc.lineno,
+            "message": exc.msg or "Invalid Python syntax.",
+        })
 
-        return _empty_result(
-            success=True,
-            errors=[{
-                "line": line,
-                "message": message,
-            }],
-            explanation=(
-                f"Python syntax error on line {line}: {message} "
-                "The code could not pass Python syntax parsing. "
-                "Correct the syntax and try again."
-            ),
-        )
-
-    # 3. Ask the AI to analyze syntactically valid Python.
+    # 3. Ask the AI to analyze and correct the code, including syntax errors.
     prompt = f"""
 You are CodeGuardian AI, a careful Python debugging assistant.
 
 Analyze the submitted Python code for:
-1. Potential runtime errors.
-2. Logic bugs.
-3. Possible improvements.
-4. The algorithm and an illustrative trace.
-5. A useful flowchart.
+1. Syntax errors (including code that cannot be parsed).
+2. Potential runtime errors.
+3. Logic bugs.
+4. Possible improvements.
+5. The algorithm and an illustrative trace.
+6. A useful flowchart.
 
 Rules:
 - Do not execute the submitted code.
@@ -143,6 +133,8 @@ Additional requirements:
 - Do not put the corrected code in explanation; put it in fixed_code.
 - Explain limitations when behavior depends on inputs or external conditions.
 
+Python parser errors already detected: {syntax_errors!r}
+
 Submitted Python code:
 <CODE>
 {code}
@@ -153,16 +145,13 @@ Submitted Python code:
         ai = _ask_groq_json(
             system_prompt="You are CodeGuardian AI. Return the requested JSON object and provide complete corrected Python code in fixed_code whenever a correction is needed.",
             user_prompt=prompt,
-        )
-        
-        print("DEBUG AI RESPONSE:", ai, flush=True)
-        print("DEBUG FIXED CODE:", repr(ai.get("fixed_code")), flush=True)
-
+            )
+      
         if not isinstance(ai, dict):
             raise ValueError("AI response must be a JSON object.")
 
         # 4. Validate errors.
-        errors = []
+        errors = list(syntax_errors)
         raw_errors = ai.get("errors", [])
 
         if isinstance(raw_errors, list):
@@ -182,10 +171,9 @@ Submitted Python code:
                 ):
                     line = None
 
-                errors.append({
-                    "line": line,
-                    "message": message.strip(),
-                })
+                issue = {"line": line, "message": message.strip()}
+                if issue not in errors:
+                    errors.append(issue)
 
         # 5. Validate the explanation.
         explanation = ai.get("explanation", "Analysis completed.")
@@ -201,7 +189,8 @@ Submitted Python code:
                 ast.parse(fixed_code)
                 verified = True
             except SyntaxError:
-                fixed_code = None
+                # Retain the suggestion for review, but do not mark it verified.
+                verified = False
         else:
             fixed_code = None
 
@@ -322,10 +311,12 @@ Submitted Python code:
 
         return _empty_result(
             success=False,
-            errors=[],
+            errors=syntax_errors,
             explanation=(
                 "Could not complete AI analysis. Check your internet "
                 "connection, Groq API key, model availability, "
-                "and API quota."
+                "and API quota. "
+                + ("A Python syntax error was detected, but no AI fix could be generated."
+                   if syntax_errors else "")
             ),
         )
