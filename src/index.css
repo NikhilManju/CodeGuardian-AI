@@ -41,6 +41,8 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 24px;
+  width: 100%;
+  box-sizing: border-box;
   padding: 22px 40px;
   background: #202635;
   box-shadow:

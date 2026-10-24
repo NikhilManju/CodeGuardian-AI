@@ -18,7 +18,7 @@ function Website() {
       {page === "home" ? (
         <Home onStart={openWorkspace} />
       ) : (
-        <App />
+        <App onGoHome={() => setPage("home")} />
       )}
     </>
   );

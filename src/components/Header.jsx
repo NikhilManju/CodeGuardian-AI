@@ -1,5 +1,4 @@
-
-export default function Header() {
+export default function Header({ onGoHome }) {
   return (
     <header className="app-header">
       <div className="brand">
@@ -12,9 +11,16 @@ export default function Header() {
       </div>
 
       <div className="header-actions">
-        <span className="language-badge">
-          Python
-        </span>
+        <button
+          onClick={onGoHome}
+          aria-label="Go to Home page"
+          title="Home"
+          className="home-button"
+        >
+          ⌂
+        </button>
+
+        <span className="language-badge">Python</span>
 
         <span className="status-badge">
           ● Workspace Ready
